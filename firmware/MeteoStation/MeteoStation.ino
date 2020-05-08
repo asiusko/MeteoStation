@@ -19,7 +19,9 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <SSD1306Wire.h>
+
+//#include <Adafruit_SSD1306.h>
 #include <Adafruit_CCS811.h>
 #include <NTPClient.h>
 #include <RTClib.h> // just for DateTime type
@@ -31,10 +33,10 @@
 #define PM25        1 // array indexes
 #define PM10to25    2 // array indexes
 
-#define SCREEN_WIDTH    128 // OLED display width, in pixels
-#define SCREEN_HEIGHT   64 // OLED display height, in pixels
-#define OLED_RESET      16 // Reset pin # (or -1 if sharing Arduino reset pin)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+
+// for 128x64 displays:
+SSD1306Wire display(0x3c, SDA, SCL);
 
 // bme280 sensor
 #define SEALEVELPRESSURE_HPA (1013.25)
@@ -208,9 +210,10 @@ void setup()
     while(!ccs811.available());
 
 	// screen
-	display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-    display.display();
-    delay(2000);
+	display.init();
+	display.setContrast(255);
+
+	display.clear();
 
 //	for (int i = 1; i <= 60; i++){
 //        delay(1000);
@@ -222,28 +225,24 @@ void setup()
 }
 
 void displayMainScreen() {
-    display.clearDisplay();
+    display.clear();
 	delay(5);
-	display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
+	//display.setFont(10);
 
-	display.setCursor(0,0);
-    display.println(CurrentData.timeString);
-    display.setCursor(0,11);
-    display.print("T:" + String(CurrentData.bme280_temp) + "*C");
-    display.print(" ");
-    display.println("P:" + String(CurrentData.bmp280_press) + "hPa");
-    display.setCursor(0,22);
-    display.println("Humidity:  " + String(CurrentData.bme280_hum) + " %");
+	display.setFont(ArialMT_Plain_10);
 
-    display.setCursor(0,33);
-    display.println("co2/tvoc:" + String((int)CurrentData.ccs811_eco2) + "/" + String((int)CurrentData.ccs811_tvoc)); // eCO2 ... ppm
-	display.setCursor(0,44);
-	display.println("AQI:" + String(CurrentData.currentAQI25) + " " + String(CurrentData.currentAQI25Status));
-	display.setCursor(0,55);
-	display.print("2.5 concentr.:");
-	display.print((int)halfHourConcentrations[(halfHourConcentrationsIndex > 0 ? (halfHourConcentrationsIndex-1) : 0 )]);
-	display.print("ppm");
+    display.drawString(0, 0, CurrentData.timeString);
+
+    display.drawString(0, 10, ("T:" + String(CurrentData.bme280_temp) + "*C" + " P:" + String(CurrentData.bmp280_press) + "hPa"));
+
+    display.drawString(0, 20, ("Humidity:  " + String(CurrentData.bme280_hum) + " %"));
+
+    display.drawString(0, 30, ("co2/tvoc:" + String((int)CurrentData.ccs811_eco2) + "/" + String((int)CurrentData.ccs811_tvoc))); // eCO2 ... ppm
+
+	display.drawString(0, 40, "AQI:" + String(CurrentData.currentAQI25) + " " + String(CurrentData.currentAQI25Status));
+
+	display.drawString(0, 50, ("2.5 concentr.:" + String(((int)halfHourConcentrations[(halfHourConcentrationsIndex > 0 ? (halfHourConcentrationsIndex-1) : 0 )])) + "ppm"));
+	display.flipScreenVertically();
 	display.display();
 }
 
@@ -274,34 +273,28 @@ void buildChart(float * dataArray, int16_t collectedSteps, float currentParam, S
 		chartData[i] = ((map((long)dataArray[i], (long)minValue, (long)maxValue, 0, 40)) * (-1)) + 52;
 	}
 
-	display.clearDisplay();
+	display.clear();
 	delay(5);
-	display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0,0);
-    display.println(legendText + ": " + String(currentParam) + " " + legendIndicator);
-    display.setCursor(0,12);
-    display.print(maxValue);
-    display.setCursor(0,27);
-    display.print(legendIndicator);
-	display.setCursor(0,42);
-    display.print(minValue);
+	display.setFont(ArialMT_Plain_10);
 
-    display.drawRect(32, 12, 98, 42, SSD1306_WHITE);
+    display.drawString(0, 0, String(legendText + ": " + String(currentParam) + " " + legendIndicator));
+    display.drawString(0, 12, String(maxValue));
+    display.drawString(0, 27, String(legendIndicator));
+    display.drawString(0, 42, String(minValue));
+
+    display.drawRect(32, 12, 98, 42);
 
 
 	for(int8_t i = 0; i < iterator; i++) {
     	chartData[i];
-    	display.drawRect((32 + (i * 2)), chartData[i], 2, (53-chartData[i]), SSD1306_WHITE);
+    	display.drawRect((32 + (i * 2)), chartData[i], 2, (53-chartData[i]));
     }
-	display.setCursor(0, 55);
-    display.print(startHours != -1 ? "hours:" : "mins.:");
+    display.drawString(0, 52, String(startHours != -1 ? "hours:" : "mins.:"));
 	int8_t time = startHours != -1 ? startHours : startMinutes;
 	int8_t startPosX = 32;
 	if (startHours != -1) {
 		for(int8_t i = 0; i <= 6; i++){
-    		display.setCursor(startPosX,55);
-        	display.print( time < 24 ? time : time - 24);
+        	display.drawString(startPosX, 52,  String(time < 24 ? time : time - 24));
         	startPosX += 16;
         	time += 4;
     	}
@@ -309,13 +302,12 @@ void buildChart(float * dataArray, int16_t collectedSteps, float currentParam, S
 
 	if (startMinutes != -1) {
 		for(int8_t i = 0; i <= 6; i++){
-    		display.setCursor(startPosX,55);
-        	display.print( time < 60 ? time : time - 60);
+        	display.drawString(startPosX, 52, String(time < 60 ? time : time - 60));
         	startPosX += 16;
         	time += 10;
     	}
 	}
-
+	display.flipScreenVertically();
 	display.display();
 }
 
