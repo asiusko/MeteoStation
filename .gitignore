@@ -1,6 +1,5 @@
 .idea
-firmware
-!firmware/MeteoStation
+
 # Prerequisites
 *.d
 
