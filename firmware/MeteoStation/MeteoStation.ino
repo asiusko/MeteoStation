@@ -66,8 +66,8 @@ int8_t subMode = 0;
 byte timeMode = 0; // 0-day, 1-hour
 
 // WiFi
-const char *ssid     = "MiHome";
-const char *password = "mrVendy2019";
+const char *ssid     = "yourWifi";
+const char *password = "yourWiFiPass";
 
 const long utcOffsetInSeconds = (3*3600); // +3hours Ukraine offset to UTC
 // Define NTP Client to get time
