@@ -1,6 +1,6 @@
 # MeteoStation
 ####work in progress
-Meteo Station based on ESP8266
+Station based on ESP8266
 
 The station collects last 24h data, shows current info, builds 24h and a last hour carts.   
 
